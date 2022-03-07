@@ -32,7 +32,7 @@ const commandMapData = [
   },
 ];
 
-function App() {
+function App () {
   const [isEdit, setIsEdit] = useState(false);
   const [htmlIfo, setHtmlIfo] = useState(null);
 
@@ -50,6 +50,27 @@ function App() {
     document.execCommand(key, false, commandMapData[index].value);
   }, []);
 
+  const getSelection = useCallback(() => {
+    const obj = window.getSelection()
+    console.log(obj)
+    if (obj.isCollapsed) return false
+    return obj
+  }, [])
+
+  const actionCustomCommand = useCallback((e) => {
+    console.log(e.target.dataset);
+    const key = e.target.dataset.key;
+
+    const index = commandMapData.findIndex((res) => res.commandKey === key);
+    const data = getSelection()
+    if (!data) return
+    console.log(data.getRangeAt(0))
+    switch(key) {
+      case 'delete':
+        data.deleteFromDocument()
+    }
+  }, [getSelection]);
+
   // 复制图片处理
   const listenPaste = useCallback(() => {
     window.addEventListener("paste", (e) => {
@@ -65,7 +86,7 @@ function App() {
           }
         }
       }
-      console.log(file)
+      console.log(file);
     });
   }, []);
 
@@ -137,19 +158,27 @@ function App() {
           <div dangerouslySetInnerHTML={{ __html: htmlIfo }}></div>
         </div>
       </div>
-      <div className="qustion">
-        <h1>一些问题</h1>
-        <div className="demo">
-          <h2>document.execCommand撤销问题</h2>
-          <div>
-            <input type="text" />
-          </div>
+      <div className="custom">
+        <h1>自定义execCommand</h1>
+        <div>
+          {commandMapData.map((res) => (
+            <button
+              key={res.commandKey}
+              data-key={res.commandKey}
+              onClick={actionCustomCommand}
+            >
+              {res.name}
+            </button>
+          ))}
         </div>
-        <div className="demo">
-          <h2>document.execCommand撤销问题</h2>
-          <div>
-            <input type="text" />
-          </div>
+        <div className="demoBox" contentEditable={true} suppressContentEditableWarning>
+          <h2>测试自定义execCommand</h2>
+          <p>字体颜色</p>
+          <p>字体背景色</p>
+          <p>加粗</p>
+          <p>删除</p>
+          <p>撤销</p>
+          <p>恢复</p>
         </div>
       </div>
     </div>
