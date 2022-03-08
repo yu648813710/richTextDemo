@@ -32,18 +32,18 @@ const commandMapData = [
   },
 ];
 
-function App () {
+function App() {
   const [isEdit, setIsEdit] = useState(false);
   const [htmlIfo, setHtmlIfo] = useState(null);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyNum, setHistoryNum] = useState(1);
 
   const onEdit = useCallback((e) => {
     const target = e.target;
-    console.log("innerHTML", e);
     setHtmlIfo(target.innerHTML);
   }, []);
 
   const actionCommand = useCallback((e) => {
-    console.log(e.target.dataset);
     const key = e.target.dataset.key;
 
     const index = commandMapData.findIndex((res) => res.commandKey === key);
@@ -51,30 +51,108 @@ function App () {
   }, []);
 
   const getSelection = useCallback(() => {
-    const obj = window.getSelection()
-    console.log(obj)
-    if (obj.isCollapsed) return false
-    return obj
-  }, [])
+    const obj = window.getSelection();
+    if (obj.isCollapsed) return false;
+    return obj;
+  }, []);
 
-  const actionCustomCommand = useCallback((e) => {
-    console.log(e.target.dataset);
-    const key = e.target.dataset.key;
+  const setFontColor = useCallback((selectionData, value) => {
+    const range = selectionData.getRangeAt(0);
+    const span = document.createElement('span')
+    span.style.color = value
+    span.appendChild(range.extractContents())
+    range.insertNode(span)
+    selectionData.selectAllChildren(span)
+  }, []);
 
-    const index = commandMapData.findIndex((res) => res.commandKey === key);
-    const data = getSelection()
-    if (!data) return
-    console.log(data.getRangeAt(0))
-    switch(key) {
-      case 'delete':
-        data.deleteFromDocument()
-    }
-  }, [getSelection]);
+  const setBold = useCallback((selectionData) => {
+    const range = selectionData.getRangeAt(0);
+    const b = document.createElement('b')
+    b.appendChild(range.extractContents())
+    range.insertNode(b)
+    selectionData.selectAllChildren(b)
+  }, []);
+
+  const setBgColor = useCallback((selectionData, value) => {
+    const range = selectionData.getRangeAt(0);
+    const span = document.createElement('span')
+    span.style.backgroundColor = value
+    span.appendChild(range.extractContents())
+    range.insertNode(span)
+    selectionData.selectAllChildren(span)
+  }, []);
+
+  const setUndo = useCallback(() => {
+    if (historyData.length <= 1) return
+    if (historyData.length === historyNum) return
+    const num = historyNum + 1
+    document.querySelectorAll('.demoBox')[1].innerHTML = historyData[historyData.length - num]
+    setHistoryNum(num)
+  }, [historyNum, historyData])
+
+  const setRedo = useCallback(() => {
+    console.log(historyNum, historyData)
+    if (historyNum <= 1) return
+    const num = historyNum - 1
+    document.querySelectorAll('.demoBox')[1].innerHTML = historyData[historyData.length - num]
+    setHistoryNum(num)
+  }, [historyNum, historyData])
+
+
+  const actionCustomCommand = useCallback(
+    (e) => {
+      const key = e.target.dataset.key;
+
+      const index = commandMapData.findIndex((res) => res.commandKey === key);
+      const data = getSelection();
+      switch (key) {
+        case "delete":
+          if (!data) return;
+          data.deleteFromDocument();
+          break;
+        case "bold":
+          if (!data) return;
+          setBold(data);
+          break;
+        case "foreColor":
+          if (!data) return;
+          setFontColor(data, commandMapData[index].value);
+          break;
+        case "backColor":
+          if (!data) return;
+          setBgColor(data, commandMapData[index].value);
+          break;
+        case "undo":
+          setUndo();
+          break;
+        case "redo":
+          setRedo();
+          break;
+      }
+
+      if (key === 'undo' || key === 'redo') return
+
+      if (historyNum !== 1) {
+        const data = historyData.splice(0, historyData.length - historyNum + 1)
+        setHistoryData([
+          ...data,
+          document.querySelectorAll('.demoBox')[1].innerHTML
+        ])
+        setHistoryNum(1)
+        return 
+      }
+
+      setHistoryData([
+        ...historyData,
+        document.querySelectorAll('.demoBox')[1].innerHTML
+      ])
+    },
+    [getSelection, setFontColor, setBold, setBgColor, historyData, setUndo, setRedo, historyNum]
+  );
 
   // 复制图片处理
   const listenPaste = useCallback(() => {
     window.addEventListener("paste", (e) => {
-      console.log(e);
       var items = (event.clipboardData || window.clipboardData).items;
       var file = null;
       if (items && items.length) {
@@ -92,6 +170,9 @@ function App () {
 
   useEffect(() => {
     listenPaste();
+    setHistoryData([
+      document.querySelectorAll('.demoBox')[1].innerHTML
+    ])
     return () => {
       window.removeEventListener("paste");
     };
@@ -171,7 +252,11 @@ function App () {
             </button>
           ))}
         </div>
-        <div className="demoBox" contentEditable={true} suppressContentEditableWarning>
+        <div
+          className="demoBox"
+          contentEditable={true}
+          suppressContentEditableWarning
+        >
           <h2>测试自定义execCommand</h2>
           <p>字体颜色</p>
           <p>字体背景色</p>
@@ -179,6 +264,9 @@ function App () {
           <p>删除</p>
           <p>撤销</p>
           <p>恢复</p>
+          <p>
+            我是<span>span</span>
+          </p>
         </div>
       </div>
     </div>
