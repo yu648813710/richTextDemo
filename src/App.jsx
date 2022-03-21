@@ -43,6 +43,7 @@ function App() {
     setHtmlIfo(target.innerHTML);
   }, []);
 
+  // 执行指令
   const actionCommand = useCallback((e) => {
     const key = e.target.dataset.key;
 
@@ -50,6 +51,7 @@ function App() {
     document.execCommand(key, false, commandMapData[index].value);
   }, []);
 
+  // 获取选区对象
   const getSelection = useCallback(() => {
     const obj = window.getSelection();
     if (obj.isCollapsed) return false;
@@ -57,11 +59,17 @@ function App() {
   }, []);
 
   const setFontColor = useCallback((selectionData, value) => {
+    // 获取选区
     const range = selectionData.getRangeAt(0);
+    // 创建包含Dom
     const span = document.createElement('span')
+    // 修改属性
     span.style.color = value
+    // 填入选区
     span.appendChild(range.extractContents())
+    // 重新修改 选取对象
     range.insertNode(span)
+    // 重新让浏览器选中修改的选区对象
     selectionData.selectAllChildren(span)
   }, []);
 
